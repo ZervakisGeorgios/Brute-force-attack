@@ -1,0 +1,313 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+
+import java.util.Scanner;
+import java.io.FileReader;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
+import java.util.ArrayList;
+/**
+ * This programme is about understanding the security weaknesses of passwords
+ * due to their low entropy. The user inputs a file name of hashes and a file
+ * name so as to store the passwords which found. The programme reads names
+ * of boys,girls and words from the english vocabulary. Moreover, it creates
+ * abstract passwords from all the alphanumerical characters and it also
+ * creates passwords from names without specified case and with a number up 
+ * to 9999 at the end. The programme produces the hash code of each string
+ * so as to campare it with the given hashes in order to match the passwords.
+ * The findings are being writen into the output file.
+ * 
+ * @author Georgios Zervakis, Student No: 160689644
+ * @version 16/12/2016
+ */
+
+public class findHash {
+    private static PrintWriter outPutText;//PrintWriter is beging used so as to write the findings in an output text 
+    public static void main(String[] args) throws FileNotFoundException, NoSuchAlgorithmException, IOException {
+        Scanner scanner=new Scanner(System.in);//This scanne is being used to receive user's inputs
+	System.out.println("Enter the name of the file which contains the hashes");
+	String hashFile1=scanner.nextLine();//the user enters the file name which contains the hashes
+	File file=new File(hashFile1);//I create this file to check if the file which the user entered exists.
+	if(file.exists()){              //if the file exists then the process can start
+		System.out.println("The file found");//appropriate message tells to user that the fils found
+	}else {
+		System.out.println("There is no file with this name");//appropriate message tells the user that the file does not exist
+		scanner.close();//the scanner is being closed and the programme termiinates
+		return;
+	}
+	System.out.println("the name of the file where the output should be written");
+	String outPut=scanner.nextLine();//the user enters a name so as to store the outputs
+	File fileOutput=new File(outPut);//this file checks if there is a file in this folder with the same name
+	if(fileOutput.exists())
+	{
+		fileOutput.delete();//if a file with same name exists, the programme deletes the old one
+	}
+	System.out.println("The process starts");
+        FileReader hashFile=new FileReader(file); //As the programme has to read character files, FileReader is a convenience class to achieve it
+        Scanner scannerFile=new Scanner(hashFile);//This scanner reads the content of the file which contains the hashes
+        ArrayList<String> hashes=new ArrayList<String>();//The hashes are stored in an Arraylist so as to delete the analyses hashes in order to eliminate the time which the programme takes
+        while(scannerFile.hasNextLine())
+        {
+            hashes.add(scannerFile.nextLine());//the scanner reads the hashes and stores them into the ArrayList
+        }
+        Iterator<String> it=hashes.iterator();//The iterator is used to print the ArrayList's content
+        while(it.hasNext())
+        {
+            String value=it.next();
+            System.out.println(value);
+        }
+        outPutText=new PrintWriter(fileOutput);//the Printwriter created the file which the findings will be stored
+        FileReader fileGirls=new FileReader("girlNames.txt");//This FileReader reads the girls' names
+        Scanner scannerGirls=new Scanner(fileGirls);//this scanner is being used to read the girls' names
+        String word;//This string stores the current string name
+        MessageDigest machineDigest=MessageDigest.getInstance("SHA-256");//A MessageDigest is being usedfor one-way hash function, SHA-256 is the digest algoithm specified by the coursework
+        double start = System.currentTimeMillis();//the time starts here in order to count in how much time each password found
+        int trackHashes=0;//this integer counts how much hash codes have been found so far
+        System.out.println("ArrayList's size: "+hashes.size());
+        while(scannerGirls.hasNext())//this loop runs as long as there are unread names in this file
+        {   machineDigest.reset();//the MessageDigest must being reset everytime it digests a new String
+            word=scannerGirls.nextLine();//the name of the girl is stored in word
+            machineDigest.update(word.getBytes());//the MachineDigest is updated by using the specified array of bytes, the string is turned into array of bytes
+            byte [] digested=machineDigest.digest();//Completes the hash computation by performing final operations such as padding and stores the has code into an array of bytes
+            String hashWordToCheck1=byteArrayToHex(digested);//the hash code is turned from array of bytes into a String through the method byteArrayToHex
+            String hashWordToCheck=hashWordToCheck1.toUpperCase();//the has codes have been given with capital letters, so the string has to be turned into a string of capital letters
+            Iterator<String> itGirl=hashes.iterator();//This iterator is used to run the ArrayList of the hashes
+            while(itGirl.hasNext())//As long as the array list has got hashes the loop continues
+            {
+                String value=itGirl.next();//the hash is stored into a String
+                
+                if(value.equals(hashWordToCheck))//This if statement checks if the given hash is equal with the computed one
+                {
+                    double elapsedTimeMillis=System.currentTimeMillis()-start;//if a password found, the time which took to find it is stored
+                    trackHashes++;//the integer which keeps the count is increased
+                    outPutText.write(value);//the PrintWriter writes the hash code into the output file
+                    outPutText.write("   ");
+                    outPutText.println(word);//the password also stored next the hash code
+                    System.out.println(trackHashes+" hash analysed, "+trackHashes+" password found");//when a password is found, an appropriate message informs the user
+                    System.out.println("Execution time: "+(elapsedTimeMillis/1000)+"s");//the time which took to find the password is also appeared
+                    outPutText.flush();//The PrintWriter flushes the streams
+                    itGirl.remove();//the hash which found is removed in order to eliminate unnecessary checks
+                }
+                
+            }
+            
+        }
+        System.out.println("ArrayList's size: "+hashes.size());//Prints the current size of the array list
+        FileReader fileBoys=new FileReader("boyNames.txt");//A fileReader to read the file with the boys' names
+        Scanner scannerBoys=new Scanner(fileBoys);//This scanner reads the boys' names
+        while(scannerBoys.hasNext())//This loop is being executed as long as there are unread names
+        {
+            machineDigest.reset();//the MessageDigest must being reset everytime it digests a new String
+            word=scannerBoys.nextLine();//This string stores the names
+            machineDigest.update(word.getBytes());//the MachineDigest is updated by using the specified array of bytes, the string is turned into array of bytes
+            byte [] digested=machineDigest.digest();//Completes the hash computation by performing final operations such as padding and stores the has code into an array of bytes
+            String hashWordToCheck1=byteArrayToHex(digested);//the hash code is turned from array of bytes into a String through the method byteArrayToHex
+            String hashWordToCheck=hashWordToCheck1.toUpperCase();//the hash codes have been given with capital letters, so the string has to be turned into a string of capital letters
+            Iterator<String>itBoys=hashes.iterator();//This iterator is used to run the ArrayList of the hashes
+            while(itBoys.hasNext())//As long as the array list has got unread hashes the loop continues
+            {
+                String value=itBoys.next();//the hash is stored into a String
+                if(value.equals(hashWordToCheck))//This if statement checks if the given hash is equal with the computed one
+                {
+                    double elapsedTimeMillis=System.currentTimeMillis()-start;//if a password found, the time which took to find it is stored
+                    trackHashes++;//the integer which keeps the count is increased
+                    outPutText.write(value);//the PrintWriter writes the hash code into the output file
+                    outPutText.write("   ");
+                    outPutText.println(word);//the password also stored next the hash code
+                    System.out.println(trackHashes+" hash analysed, "+trackHashes+" password found");//when a password is found, an appropriate message informs the user
+                    System.out.println("Execution time: "+(elapsedTimeMillis/1000)+"s");//the time which took to find the password is also appeared
+                    outPutText.flush();//The PrintWriter flushes the streams
+                    itBoys.remove();//the hash which found is removed in order to eliminate unnecessary checks
+                }
+            }
+        }
+        System.out.println("ArrayList's size: "+hashes.size());//Prints the current size of the array list
+        FileReader fileMoby=new FileReader("wordListMoby.txt");//A fileReader to read the file which contains the english vocabulary
+        Scanner scannerMoby=new Scanner(fileMoby);//This scanner reads the words from the file
+        while (scannerMoby.hasNext())//This loop is being executed as long as there are unread names
+        {
+            machineDigest.reset();//the MessageDigest must being reset everytime it digests a new String
+            word=scannerMoby.nextLine();//This string stores the current word
+            machineDigest.update(word.getBytes());//the MachineDigest is updated by using the specified array of bytes, the string is turned into array of bytes
+            byte[] digested=machineDigest.digest();//Completes the hash computation by performing final operations such as padding and stores the has code into an array of bytes
+            String hashWordToCheck1=byteArrayToHex(digested);//the hash code is turned from array of bytes into a String through the method byteArrayToHex
+            String hashWordToCheck=hashWordToCheck1.toUpperCase();//the hash codes have been given with capital letters, so the string has to be turned into a string of capital letters
+            Iterator<String> itMoby=hashes.iterator();//This iterator is used to run the ArrayList of the hashes
+            while(itMoby.hasNext())//As long as the array list has got unread hashes the loop continues
+            {
+                String value=itMoby.next();//the hash is stored into a String
+                if(value.equals(hashWordToCheck))//This if statement checks if the given hash is equal with the computed one
+                {
+                    double elapsedTimeMillis=System.currentTimeMillis()-start;//if a password found, the time which took to find it is stored
+                    trackHashes++;//the integer which keeps the count is increased
+                    outPutText.write(value);//the PrintWriter writes the hash code into the output file
+                    outPutText.write("   ");
+                    outPutText.println(word);//the password also stored next the hash code
+                    System.out.println(trackHashes+" hash analysed "+" password found "+trackHashes);//when a password is found, an appropriate message informs the user
+                    System.out.println("Execution time: "+(elapsedTimeMillis/1000)+"s");//the time which took to find the password is also appeared
+                    outPutText.flush();//The PrintWriter flushes the streams
+                    itMoby.remove();//the hash which found is removed in order to eliminate unnecessary checks
+                }
+            }
+        }
+        System.out.println("ArrayList's size: "+hashes.size());
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_!@#$%^&*";
+        char[] chars=characters.toCharArray();
+        //System.out.println(chars.length);
+        for(int i=0;i<chars.length;i++)
+        {   for(int u=0;u<chars.length;u++)
+            {    for(int k=0;k<chars.length;k++)
+                {    for(int p=0;p<chars.length;p++)
+                    {   machineDigest.reset();
+                        char wordList[]={chars[i], chars[u], chars[k], chars[p]};
+                        word=String.copyValueOf(wordList);
+                        //System.out.println(word);
+                        machineDigest.update(word.getBytes());
+                        byte [] digested=machineDigest.digest();
+                        String hashWordToCheck1=byteArrayToHex(digested);
+                        String hashWordToCheck=hashWordToCheck1.toUpperCase();
+                        Iterator<String> itAlpha=hashes.iterator();
+                        while(itAlpha.hasNext())
+                        {
+                            String value=itAlpha.next();
+                            if(value.equals(hashWordToCheck))
+                            {   double elapsedTimeMillis=System.currentTimeMillis()-start;
+                                trackHashes++;
+                                outPutText.write(value);
+                                outPutText.write("   ");
+                                outPutText.println(word);
+                                System.out.println(trackHashes+"hash analysed "+" password found "+trackHashes);
+                                System.out.println("Execution time: "+(elapsedTimeMillis/1000)+"s");
+                                outPutText.flush();
+                                itAlpha.remove();
+                                
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        System.out.println("ArrayList's size: "+hashes.size());
+        FileReader girlNameCapital=new FileReader("girlNames.txt");
+        Scanner scannerGirlCapital=new Scanner(girlNameCapital);
+        
+        while(scannerGirlCapital.hasNext())
+        {
+            machineDigest.reset();
+            word=scannerGirlCapital.nextLine();
+            int combinations=1<<word.length();
+            for (int i=0; i< combinations; i++)
+            {   char[] result=word.toCharArray();
+                for(int j=0; j<word.length();j++)
+                {
+                    if(((i>>j)&1)==1){
+                        result[j]=Character.toUpperCase(word.charAt(j));
+                    }
+                }
+                String word2=new String(result);
+                for(int q=0;q<10000;q++)
+                {
+                    String word3=word2+String.valueOf(q);
+                    System.out.println(word3);
+                    machineDigest.update(word3.getBytes());
+                    byte [] digested=machineDigest.digest();
+                    String hashWordToCheck1=byteArrayToHex(digested);
+                    String hashWordToCheck=hashWordToCheck1.toUpperCase();
+                    Iterator<String>itGirlCapital=hashes.iterator();
+                    while(itGirlCapital.hasNext())
+                    {
+                        String value=itGirlCapital.next();
+                        if(value.equals(hashWordToCheck))
+                        {
+                            double elapsedTimeMillis=System.currentTimeMillis()-start;
+                            trackHashes++;
+                            outPutText.write(value);
+                            outPutText.write("   ");
+                            outPutText.println(word3);
+                            System.out.println(trackHashes+" hash analysed "+" password found "+trackHashes);
+                            System.out.println("Execution time: "+(elapsedTimeMillis/1000)+"s");
+                            outPutText.flush();
+                            itGirlCapital.remove();
+                        }
+                    }
+                
+                
+                }
+            }
+        }
+        System.out.println("Arraylist's size "+hashes.size());
+        FileReader boyNamesCapital=new FileReader("boyNames.txt");
+        Scanner scannerBoyCapital=new Scanner(boyNamesCapital);
+        while(scannerBoyCapital.hasNext())
+        {
+            machineDigest.reset();
+            word=scannerBoyCapital.nextLine();
+            int combinations=1<<word.length();
+            for(int i=0;i< combinations; i++)
+            {
+                char[] result=word.toCharArray();
+                for(int j=0; j<word.length();j++)
+                {
+                    if(((i>>j) &1)==1)
+                    {
+                        result[j]=Character.toUpperCase(word.charAt(j));
+                        
+                    }
+                }
+                String word2=new String(result);
+                for(int q=0; q<10000; q++)
+                {
+                    String word3=word2+String.valueOf(q);
+                    machineDigest.update(word3.getBytes());
+                    byte [] digested=machineDigest.digest();
+                    String hashWordToCheck1=byteArrayToHex(digested);
+                    String hashWordToCheck=hashWordToCheck1.toUpperCase();
+                    Iterator<String> itBoyCapital=hashes.iterator();
+                    while(itBoyCapital.hasNext())
+                    {
+                        String value=itBoyCapital.next();
+                        if(value.equals(hashWordToCheck))
+                        {
+                            double elapsedTimeMillis=System.currentTimeMillis()-start;
+                            trackHashes++;
+                            outPutText.write(value);
+                            outPutText.write("   ");
+                            outPutText.println(word3);
+                            System.out.println(trackHashes+" hash analysed "+" password found "+trackHashes);
+                            System.out.println("Execution time: "+(elapsedTimeMillis/1000)+" s");
+                            outPutText.flush();
+                            itBoyCapital.remove();
+                        }
+                    }
+                }
+            }
+        }
+        
+        
+        
+        scannerBoyCapital.close();
+        scannerGirlCapital.close();
+        scanner.close();
+        scannerFile.close();
+        scannerGirls.close();
+        scannerBoys.close();
+        scannerMoby.close();
+        outPutText.close();
+    }
+    /**
+     * A method so as to turn arrays of bytes into Strings in order to compare the hashes
+     * @param a The array of bytes which stores the current hash
+     * @return Returns the String value of the array of bytes.
+     */ 
+    public static String byteArrayToHex(byte[] a){
+		StringBuilder sb=new StringBuilder(a.length*2);
+		for(byte b:a){
+			sb.append(String.format("%02x", b & 0xff));}
+		return sb.toString();
+    }
+    
+}
